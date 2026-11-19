@@ -19,6 +19,12 @@ exports.handler = async (event) => {
       const r = await fetch(url);
       if (!r.ok) continue;
       const text = await r.text();
+      
+      // --- TAMBAHAN BARU: Jika data musim ini kurang dari 100 laga, coba musim lalu ---
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 100) continue; 
+      // --------------------------------------------------------------------------------
+
       return {
         statusCode: 200,
         headers: {
