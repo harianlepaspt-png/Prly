@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kalkulator Analisa Parlay</title>
+<style>
+:root{--bg:#fff;--fg:#1b1b1b;--mut:#6a6a66;--card:#f4f4f0;--bd:#d8d8d2;--ac:#0f766e;--ok:#15803d;--bad:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141413;--fg:#ececE8;--mut:#a3a39d;--card:#1f1f1d;--bd:#3a3a36;--ac:#2dd4bf;--ok:#4ade80;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#141413;--fg:#ececE8;--mut:#a3a39d;--card:#1f1f1d;--bd:#3a3a36;--ac:#2dd4bf;--ok:#4ade80;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0 auto;padding:12px;max-width:640px}
+h1{font-size:20px;margin:4px 0}h2{font-size:17px;margin:0 0 8px}
+.mut{color:var(--mut);margin:4px 0}.small{font-size:12px}.sm{font-size:13px;margin:4px 0}
+.sub{font-size:12px;color:var(--mut);margin:10px 0 2px;font-weight:600}
+.step{font-weight:600;margin:12px 0 4px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:10px 0}
+details.sub{border-top:1px solid var(--bd);margin-top:10px;padding-top:6px}
+label{display:block;font-size:12px;color:var(--mut)}
+input,select,textarea{width:100%;box-sizing:border-box;padding:8px;font-size:16px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);margin-top:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.hd{display:flex;gap:8px;align-items:center}.hd .nm{flex:1;margin:0}
+.inc,label.sw{display:flex;gap:6px;align-items:center;white-space:nowrap;font-size:12px}
+.inc input,label.sw input{width:auto;margin:0}
+label.sw{white-space:normal;font-size:14px;color:var(--fg);margin-top:8px}
+button{font-size:15px;padding:9px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--fg)}
+#add{width:100%;background:var(--ac);color:var(--bg);border:0;font-weight:600}
+summary{cursor:pointer;color:var(--ac);font-size:14px;margin-top:6px}
+ol{padding-left:20px;margin:6px 0}
+.bar{display:grid;grid-template-columns:62px 1fr 52px;gap:6px;align-items:center;font-size:13px;margin:3px 0}
+.tr{height:8px;background:var(--bd);border-radius:4px;overflow:hidden}.tr i{display:block;height:100%;background:var(--ac)}
+.bar b{text-align:right}
+.pick{display:flex;gap:10px;align-items:center;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);font-size:14px}
+.pick.ok{border-color:var(--ok)}.pick.bad{border-color:var(--bad)}
+.big{font-size:22px;font-weight:700;min-width:64px;text-align:center}
+.pick.ok .big{color:var(--ok)}.pick.bad .big{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}td,th{padding:4px 2px;border-bottom:1px solid var(--bd);text-align:left}td:nth-child(n+3),th:nth-child(n+3){text-align:right}
+table.rt td:nth-child(2),table.rt th:nth-child(2){text-align:right}
+.kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bd)}
+[hidden]{display:none!important}
+body:not(.adv) .adv-only{display:none!important}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+</style></head><body>
+<h1>Kalkulator Analisa Parlay</h1>
+<p class="mut">Hitung peluang pertandingan sepakbola dengan model Poisson, lalu cek apakah odds bandar punya value.</p>
+
+<details class="card" open><summary>Cara pakai (3 langkah)</summary>
+<ol><li>Isi rata-rata gol tiap tim (atau hitung dari daftar skor). Punya data xG? Tambahkan sebagai opsi.</li>
+<li>Pilih jenis taruhan dan isi odds dari bandar.</li>
+<li>Baca hasilnya. "Ada value" artinya peluang menurut model lebih besar daripada yang dibayar odds. Gabungkan beberapa pertandingan di bagian Parlay.</li></ol>
+<label class="sw"><input type="checkbox" id="adv"> Mode lanjutan (tabel lengkap, λ manual, odds pasar)</label>
+</details>
+
+<div id="list"></div>
+<button id="add">+ Tambah pertandingan</button>
+<section class="card" id="pr"></section>
+
+<details class="card"><summary>Data liga (CSV) &amp; pengaturan lanjutan</summary>
+<div id="set">
+<p class="mut small">Untuk pemula, nilai bawaan sudah cukup. Rata-rata gol liga dan rho hanya dipakai pada pertandingan yang tidak memilih liga dari CSV.</p>
+<div class="g2">
+<label>Rata-rata gol kandang di liga<input id="lh" type="number" step="0.01" inputmode="decimal" value="1.5"></label>
+<label>Rata-rata gol tandang di liga<input id="la" type="number" step="0.01" inputmode="decimal" value="1.2"></label>
+<label>Rho (biarkan -0.1 jika ragu)<input id="rho" type="number" step="0.01" inputmode="decimal" value="-0.1"></label>
+<label>Bankroll<input id="bk" type="number" inputmode="decimal" value="1000000"></label>
+<label>Pengali Kelly (kecil = lebih aman)<input id="kf" type="number" step="0.05" inputmode="decimal" value="0.25"></label>
+<label>Bobot xG saat dicampur gol (%)<input id="xw" type="number" step="5" min="0" max="100" inputmode="decimal" value="65"></label>
+<label>Bobot prior untuk data sedikit (laga semu)<input id="kp" type="number" step="1" min="0" inputmode="decimal" value="8"></label>
+<label>Home advantage default (%)<input id="ha" type="number" step="1" inputmode="decimal" placeholder="kosong = ikut liga"></label>
+</div></div>
+<details class="sub" id="csv"><summary>Data liga dari CSV (bisa banyak liga)</summary>
+<p class="mut small">Unggah satu atau banyak CSV (format football-data.co.uk: kolom HomeTeam, AwayTeam, FTHG, FTAG). Tiap liga disimpan terpisah: nama liga dari kolom Div, atau dari nama file jika tidak ada. File dari liga yang sama (mis. beberapa musim) otomatis digabung. Lalu pilih liga di tiap pertandingan. Jika tombol unggah tidak bisa dipakai di aplikasi, tempel teks CSV di bawah atau buka halaman ini di browser (Chrome/Safari).</p>
+<input type="file" id="csvf" multiple>
+<details open><summary>atau tempel teks CSV</summary>
+<input id="csvn" placeholder="Nama liga (opsional, untuk teks tempel)">
+<textarea id="csvt" rows="4" placeholder="Div,Date,HomeTeam,AwayTeam,FTHG,FTAG,..."></textarea><button id="csvb">Proses</button></details>
+<div id="csvr" class="mut small"></div>
+<button id="csvx" hidden>Hapus semua data liga</button></details>
+</details>
+
+<p class="mut small">Alat bantu analisis, bukan jaminan hasil. Model hanya sebaik datanya, dan setiap leg dianggap independen. Taruhan berisiko; hanya gunakan dana yang siap hilang dan pastikan legal di wilayah Anda.</p>
+
+<script>
+const $=s=>document.querySelector(s);
+const fact=[1];for(let i=1;i<=12;i++)fact[i]=fact[i-1]*i;
+const pois=(k,l)=>Math.exp(-l)*Math.pow(l,k)/fact[k];
+const pc=x=>(x*100).toFixed(1)+'%';
+const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const fL=L=>L>0?'+'+L:''+L;
+const PICKS={H:'Kandang menang',D:'Seri',A:'Tandang menang','1X':'Kandang menang atau seri (1X)',X2:'Seri atau tandang menang (X2)',O15:'Over 1.5 gol',U15:'Under 1.5 gol',O25:'Over 2.5 gol',U25:'Under 2.5 gol',O35:'Over 3.5 gol',U35:'Under 3.5 gol',BY:'Kedua tim cetak gol (BTTS Ya)',BN:'Ada tim tak cetak gol (BTTS Tidak)',HS:'Kandang cetak gol (≥1)',HS2:'Kandang cetak ≥2 gol',HN:'Kandang tidak cetak gol',AS:'Tandang cetak gol (≥1)',AS2:'Tandang cetak ≥2 gol',AN:'Tandang tidak cetak gol',AHH:'Asian Handicap Kandang',AHA:'Asian Handicap Tandang'};
+const PG=[['Hasil akhir',['H','D','A','1X','X2']],['Jumlah gol',['O15','U15','O25','U25','O35','U35','BY','BN']],['Gol tiap tim',['HS','HS2','HN','AS','AS2','AN']],['Asian Handicap (pilih garis)',['AHH','AHA']]];
+const LINES=Array.from({length:21},(_,i)=>(i-10)/4);
+const lineLbl=L=>fL(L)+(L==0?' (seri: uang kembali)':'')+(L*4%2?` (${fL(L-0.25)} & ${fL(L+0.25)})`:'');
+const plabel=(pk,ln)=>pk=='AHH'||pk=='AHA'?PICKS[pk]+' '+fL(+ln):PICKS[pk];
+
+// Matriks skor Poisson + koreksi Dixon-Coles untuk skor rendah, dinormalisasi
+function matrix(lh,la,rho){
+  const N=10,m=[];let sum=0;
+  for(let i=0;i<=N;i++){m[i]=[];for(let j=0;j<=N;j++){
+    let p=pois(i,lh)*pois(j,la);
+    if(i==0&&j==0)p*=1-lh*la*rho;
+    else if(i==0&&j==1)p*=1+lh*rho;
+    else if(i==1&&j==0)p*=1+la*rho;
+    else if(i==1&&j==1)p*=1-rho;
+    m[i][j]=Math.max(p,0);sum+=m[i][j];}}
+  return m.map(r=>r.map(p=>p/sum));
+}
+function model(lh,la,rho){
+  const m=matrix(lh,la,rho),P={H:0,D:0,A:0,O15:0,O25:0,O35:0,BY:0,HN:0,AN:0,HS2:0,AS2:0},sc=[],dd={};
+  m.forEach((r,i)=>r.forEach((p,j)=>{
+    if(i>j)P.H+=p;else if(i==j)P.D+=p;else P.A+=p;
+    const t=i+j;if(t>=2)P.O15+=p;if(t>=3)P.O25+=p;if(t>=4)P.O35+=p;
+    if(i&&j)P.BY+=p;if(!i)P.HN+=p;if(!j)P.AN+=p;if(i>=2)P.HS2+=p;if(j>=2)P.AS2+=p;
+    dd[i-j]=(dd[i-j]||0)+p;sc.push([i+'-'+j,p]);}));
+  P['1X']=P.H+P.D;P.X2=P.D+P.A;P.U15=1-P.O15;P.U25=1-P.O25;P.U35=1-P.O35;P.BN=1-P.BY;P.HS=1-P.HN;P.AS=1-P.AN;
+  const sum=f=>Object.keys(dd).reduce((a,d)=>f(+d)?a+dd[d]:a,0); // dd: selisih gol (kandang - tandang)
+  // Asian Handicap, sudut pandang kandang dengan garis L (kandang +L); garis ¼ = dua setengah-taruhan
+  const comp=c=>({w:sum(d=>d+c>0),p:sum(d=>d+c==0),l:sum(d=>d+c<0)});
+  const ah=LINES.map(L=>{const r=(L*4%2?[L-0.25,L+0.25]:[L]).map(comp),av=f=>r.reduce((a,x)=>a+x[f],0)/r.length;
+    return{L,w:av('w'),p:av('p'),l:av('l')}});
+  const fair=ah.reduce((b,x)=>Math.abs(x.w-x.l)<Math.abs(b.w-b.l)-1e-12?x:b);
+  sc.sort((a,b)=>b[1]-a[1]);
+  return{P,top:sc.slice(0,5),ah,fair};
+}
+// Hasil satu taruhan: w = menang penuh, u = uang kembali (push), l = kalah (dalam satuan taruhan)
+function legOf(r,pk,ln){
+  if(pk=='AHH'||pk=='AHA'){
+    const L=+ln,x=r.ah.find(a=>Math.abs(a.L-(pk=='AHH'?L:-L))<1e-9);
+    return pk=='AHH'?{w:x.w,u:x.p,l:x.l}:{w:x.l,u:x.p,l:x.w};
+  }
+  const w=r.P[pk];return{w,u:0,l:1-w};
+}
+const num=(c,k)=>parseFloat(c.querySelector('[data-k='+k+']').value);
+const gv=(c,k)=>c.querySelector('[data-k='+k+']').value;
+const CARD=`<div class="hd"><input class="nm" data-k="nm" placeholder="Nama pertandingan, mis. Arsenal vs Chelsea"><label class="inc"><input type="checkbox" data-k="inc" checked>ikut parlay</label><button class="x" title="Hapus">✕</button></div>
+<div class="lgw" hidden style="margin:8px 0"><label>Liga (dari CSV)<select class="lg"></select></label></div>
+<div class="g2 ts" hidden>
+<label>Tim kandang (CSV)<select class="th"></select></label>
+<label>Tim tandang (CSV)<select class="ta"></select></label>
+</div>
+<p class="step">1. Rata-rata gol per laga</p>
+<div class="g2">
+<label>Tim kandang: gol dicetak<input data-k="hs" type="number" step="0.01" inputmode="decimal" value="1.6"></label>
+<label>Tim kandang: kebobolan<input data-k="hc" type="number" step="0.01" inputmode="decimal" value="1.0"></label>
+<label>Tim tandang: gol dicetak<input data-k="as" type="number" step="0.01" inputmode="decimal" value="1.2"></label>
+<label>Tim tandang: kebobolan<input data-k="ac" type="number" step="0.01" inputmode="decimal" value="1.4"></label>
+</div>
+<p class="mut small">Tim kandang dihitung dari laga kandangnya, tim tandang dari laga tandangnya (8-15 laga terakhir lebih baik).</p>
+<details><summary>Atur home advantage (%) (opsional)</summary>
+<label>Home advantage (%)<input data-k="ha" type="number" step="1" inputmode="decimal" placeholder="kosong = ikut data liga"></label>
+<p class="mut small">Artinya: berapa persen lebih banyak gol yang diharapkan tim kandang dibanding tim tandang pada kekuatan yang sama. Kosong = memakai selisih rata-rata gol kandang dan tandang liga (sudah termasuk home advantage). Angka yang Anda isi menggantikan, bukan menambah, nilai bawaan itu. Isi 0 untuk lapangan netral (mis. final). Total gol liga tetap, hanya pembagian kandang/tandang yang berubah.</p></details>
+<details><summary>Punya data xG? Tambahkan (opsional)</summary>
+<p class="mut small">Isi rata-rata xG dan xGA per laga dari satu sumber yang sama (mis. Understat, Sofascore, atau FotMob; cek apakah kompetisinya tersedia): tim kandang dari laga kandangnya, tim tandang dari laga tandangnya. Kotak yang diisi dicampur dengan gol sebenarnya sesuai bobot xG di Pengaturan lanjutan. Kosongkan jika tidak punya.</p>
+<div class="g2">
+<label>Tim kandang: xG (cetak)<input data-k="hx" type="number" step="0.01" inputmode="decimal"></label>
+<label>Tim kandang: xGA (kebobolan)<input data-k="hxa" type="number" step="0.01" inputmode="decimal"></label>
+<label>Tim tandang: xG (cetak)<input data-k="ax" type="number" step="0.01" inputmode="decimal"></label>
+<label>Tim tandang: xGA (kebobolan)<input data-k="axa" type="number" step="0.01" inputmode="decimal"></label>
+</div></details>
+<details><summary>Turnamen baru jalan (0-3 laga)? Pakai ini</summary>
+<p class="mut small">Isi bagian ini sebagai pengganti keempat kotak di atas. Data yang sedikit dihaluskan ke angka prior, jadi tim yang belum mencetak gol tetap menghasilkan prediksi yang wajar. Dengan 0 laga, hasilnya murni dari prior (kosong = rata-rata liga). Kosongkan kolom laga untuk mematikan mode ini.</p>
+<div class="g2">
+<label>Kandang: laga dimainkan<input data-k="nh" type="number" step="1" min="0" inputmode="numeric"></label>
+<label>Tandang: laga dimainkan<input data-k="na" type="number" step="1" min="0" inputmode="numeric"></label>
+<label>Kandang: total gol cetak<input data-k="gh" type="number" step="1" min="0" inputmode="numeric"></label>
+<label>Tandang: total gol cetak<input data-k="ga" type="number" step="1" min="0" inputmode="numeric"></label>
+<label>Kandang: total kebobolan<input data-k="ch" type="number" step="1" min="0" inputmode="numeric"></label>
+<label>Tandang: total kebobolan<input data-k="ca" type="number" step="1" min="0" inputmode="numeric"></label>
+<label>Kandang: prior cetak/laga (opsional)<input data-k="pgh" type="number" step="0.01" inputmode="decimal"></label>
+<label>Tandang: prior cetak/laga (opsional)<input data-k="pga" type="number" step="0.01" inputmode="decimal"></label>
+<label>Kandang: prior kebobolan/laga (opsional)<input data-k="pch" type="number" step="0.01" inputmode="decimal"></label>
+<label>Tandang: prior kebobolan/laga (opsional)<input data-k="pca" type="number" step="0.01" inputmode="decimal"></label>
+</div>
+<p class="mut small">Prior = perkiraan kemampuan tim sebelum turnamen, mis. rata-rata gol per laga di liga domestik musim ini atau musim lalu. Karena lawan di turnamen Eropa lebih kuat, turunkan prior cetak dan naikkan prior kebobolan sedikit (aturan praktis, mis. 10%). Kosongkan jika tidak yakin.</p>
+</details>
+<details><summary>Bingung? Hitung dari daftar skor</summary>
+<p class="mut small">Tulis skor laga terakhir dari sudut pandang tim itu (gol tim - gol lawan), mis. 2-1 0-0 3-2. Kotak di atas terisi otomatis.</p>
+<label>Laga kandang milik tim kandang<textarea class="sh" rows="2" placeholder="2-1 0-0 3-2 1-1 2-0"></textarea></label>
+<label>Laga tandang milik tim tandang<textarea class="sa" rows="2" placeholder="1-1 0-2 1-0 2-2 0-1"></textarea></label>
+<div class="mut small sres"></div></details>
+<p class="step">2. Taruhan yang ingin dicek</p>
+<div class="g2">
+<label>Jenis taruhan<select data-k="pk"></select></label>
+<label>Odds dari bandar<input data-k="od" type="number" step="0.01" inputmode="decimal" placeholder="mis. 1.90"></label>
+</div>
+<div class="ahw" hidden>
+<label>Garis handicap untuk tim yang dipilih<select data-k="ln"></select></label>
+<details><summary>Apa itu Asian Handicap?</summary>
+<p class="mut small">Satu tim diberi keunggulan atau kekurangan gol sebelum laga. Kandang -0.5: kandang harus menang. Kandang +0.5: kandang menang atau seri. Garis bulat (0, -1, +1): jika hasil pas di garis, taruhan dikembalikan. Garis seperempat (mis. -0.25): taruhan dibagi dua ke garis kiri dan kanannya, jadi bisa menang atau kalah separuh.</p></details>
+</div>
+<details class="adv-only"><summary>Opsi lanjutan</summary>
+<p class="mut small">Override λ manual (mis. setelah cedera/rotasi), kosongkan jika tidak dipakai:</p>
+<div class="g2"><label>λ kandang<input data-k="mh" type="number" step="0.01" inputmode="decimal"></label><label>λ tandang<input data-k="ma" type="number" step="0.01" inputmode="decimal"></label></div>
+<p class="mut small">Odds 1X2 pasar untuk dibandingkan dengan model (margin dibuang):</p>
+<div class="g3"><label>Kandang<input data-k="o1" type="number" step="0.01" inputmode="decimal"></label><label>Seri<input data-k="ox" type="number" step="0.01" inputmode="decimal"></label><label>Tandang<input data-k="o2" type="number" step="0.01" inputmode="decimal"></label></div>
+</details>
+<div class="res"></div>`;
+
+function calc(c){
+  const L=LGS[c.querySelector('.lg').value];
+  const LH=L?L.LH:+$('#lh').value,LA=L?L.LA:+$('#la').value;
+  const rho=Math.max(-0.3,Math.min(0.3,(L?L.rho:+$('#rho').value)||0));
+  let lh=num(c,'mh'),la=num(c,'ma');
+  // home advantage: total gol liga tetap, pembagian kandang:tandang diatur ulang menjadi (1+ha):1
+  const hb=(LH/LA-1)*100,hg=gv(c,'ha')!==''?parseFloat(gv(c,'ha')):parseFloat($('#ha').value),hov=isFinite(hg)?Math.max(-50,Math.min(150,hg)):null,hr=hov==null?LH/LA:1+hov/100,LH2=hov==null?LH:(LH+LA)*hr/(1+hr),LA2=hov==null?LA:(LH+LA)/(1+hr);
+  // attack_home = hs/LH, defence_away = ac/LH => λ = att*def*LH = hs*ac/LH
+  const W=Math.max(0,Math.min(1,(parseFloat($('#xw').value)||0)/100)),B=(g,x)=>{const a=num(c,g),b=num(c,x);return b>0?(a>=0?W*b+(1-W)*a:b):a}; // xG/xGA dicampur dengan gol
+  const SS=gv(c,'nh')!==''||gv(c,'na')!=='',K=Math.max(0,parseFloat($('#kp').value)||0),G0=(LH+LA)/2,nn=k=>Math.max(0,parseFloat(gv(c,k))||0),pr=k=>{const v=num(c,k);return v>0?v:G0},sm=(n,t,p)=>n+K>0?(t+K*p)/(n+K):p; // data sedikit: dihaluskan ke prior
+  const nh=nn('nh'),na=nn('na'),lhS=sm(nh,nn('gh'),pr('pgh'))*sm(na,nn('ca'),pr('pca'))/(G0*G0)*LH2,laS=sm(na,nn('ga'),pr('pga'))*sm(nh,nn('ch'),pr('pch'))/(G0*G0)*LA2;
+  if(!(lh>0))lh=SS?lhS:B('hs','hx')*B('ac','axa')/LH*(LH2/LH);
+  if(!(la>0))la=SS?laS:B('as','ax')*B('hc','hxa')/LA*(LA2/LA);
+  if(!(lh>0&&la>0&&lh<8&&la<8))return null;
+  return{lh,la,hov,hb,xw:W,xu:['hx','hxa','ax','axa'].some(k=>num(c,k)>0),sw:SS?[nh+K>0?nh/(nh+K):0,na+K>0?na/(na+K):0]:null,...model(lh,la,rho)};
+}
+const bar=(l,p)=>`<div class="bar"><span>${l}</span><div class="tr"><i style="width:${p*100}%"></i></div><b>${pc(p)}</b></div>`;
+
+function upd(c){
+  const r=calc(c),out=c.querySelector('.res');c._r=r;
+  const pk=gv(c,'pk'),isAH=pk=='AHH'||pk=='AHA';
+  c.querySelector('.ahw').hidden=!isAH;
+  if(!r){out.innerHTML='<p class="mut">Isi keempat kotak rata-rata gol dengan angka valid (nilai 0 tidak bisa dihitung). Jika tim baru bermain 0-3 laga, pakai bagian "Turnamen baru jalan".</p>';parlay();return}
+  const{P,top,lh,la,ah,fair}=r,ln=gv(c,'ln'),od=num(c,'od'),lg=legOf(r,pk,ln),LG=LGS[c.querySelector('.lg').value];
+  const idx=[...document.querySelectorAll('.m')].indexOf(c)+1;
+  const fo=lg.w>1e-9?1+lg.l/lg.w:Infinity,fos=isFinite(fo)?fo.toFixed(2):'-';
+  Object.assign(r,{name:gv(c,'nm').trim()||('Pertandingan '+idx),label:plabel(pk,ln),w:lg.w,u:lg.u,l:lg.l,od:od>1?od:NaN,fo});
+  let cls='neu',msg;
+  if(od>1){
+    const ev=lg.w*od+lg.u-1;cls=ev>0?'ok':'bad';
+    msg=ev>0?`<b>Ada value.</b> Odds ${od.toFixed(2)} lebih tinggi dari odds wajar ${fos}. Rata-rata untung ${(ev*100).toFixed(1)}% per taruhan (menurut model).`
+      :`<b>Tidak ada value.</b> Odds ${od.toFixed(2)} tidak lebih tinggi dari odds wajar ${fos}. Rata-rata rugi ${(-ev*100).toFixed(1)}% per taruhan (menurut model).`;
+    if(ev>0.2)msg+=' Selisih sebesar ini biasanya tanda data kurang tepat (mis. cedera/rotasi belum masuk). Cek ulang.';
+  }else msg=`Odds wajar menurut model: <b>${fos}</b>. Isi odds dari bandar untuk melihat apakah ada value.`;
+  const un=lg.u>0.005?` · uang kembali ${pc(lg.u)}`:'';
+  let h=`<div class="pick ${cls}"><div class="big">${pc(lg.w)}</div><div><b>${esc(r.label)}</b>${un}<br>${msg}</div></div>`;
+  c.querySelector('[data-k=ha]').placeholder='kosong = ikut liga ('+(r.hb>0?'+':'')+r.hb.toFixed(0)+'%)';
+  if(r.hov!=null)h+=`<p class="sm">Home advantage dipakai: <b>${r.hov>0?'+':''}${r.hov.toFixed(0)}%</b> (bawaan data liga ${r.hb>0?'+':''}${r.hb.toFixed(0)}%).</p>`;
+  if(r.sw)h+=`<p class="sm">Mode turnamen baru jalan: bobot data turnamen kandang ${Math.round(r.sw[0]*100)}%, tandang ${Math.round(r.sw[1]*100)}% (sisanya prior).</p>`;
+  if(r.xu&&!r.sw)h+=`<p class="sm">Data xG ikut dihitung (bobot ${Math.round(r.xw*100)}% xG, ${100-Math.round(r.xw*100)}% gol sebenarnya).</p>`;
+  h+='<p class="sub">Peluang hasil akhir</p>'+bar('Kandang',P.H)+bar('Seri',P.D)+bar('Tandang',P.A);
+  h+=`<p class="sm">Gol: Over 2.5 <b>${pc(P.O25)}</b> · Under 2.5 <b>${pc(P.U25)}</b> · Kedua tim cetak gol <b>${pc(P.BY)}</b></p>`;
+  h+=`<p class="sm">Kandang cetak gol <b>${pc(P.HS)}</b> · Tandang cetak gol <b>${pc(P.AS)}</b> · Skor paling mungkin <b>${top[0][0]}</b> (${pc(top[0][1])})</p>`;
+  h+=`<p class="sm">Asian Handicap yang paling pas: <b>Kandang ${fL(fair.L)}</b> atau <b>Tandang ${fL(-fair.L)}</b></p>`;
+  // ===== Bagian lanjutan =====
+  const trw=(l,a,b)=>`<tr><td>${l}</td><td>${pc(a)}</td><td>${pc(b)}</td></tr>`;
+  let a=`<p class="mut small">Ekspektasi gol (λ): <b>${lh.toFixed(2)}</b> – <b>${la.toFixed(2)}</b>${LG?' · '+esc(LG.name)+' (rho '+LG.rho.toFixed(3)+')':''}</p>`;
+  const o=['o1','ox','o2'].map(k=>num(c,k));
+  if(o.every(x=>x>1)){const iv=o.map(x=>1/x),sv=iv.reduce((x,y)=>x+y);
+    a+=`<p class="mut small">Pasar tanpa margin: ${iv.map(x=>pc(x/sv)).join(' / ')} (margin ${((sv-1)*100).toFixed(1)}%)</p>`}
+  a+=`<p class="mut small">Skor teratas: ${top.map(t=>t[0]+' ('+pc(t[1])+')').join(', ')}</p>`;
+  a+=`<table class="rt"><tr><th>Total gol</th><th>Over</th><th>Under</th></tr>${trw('1.5',P.O15,P.U15)}${trw('2.5',P.O25,P.U25)}${trw('3.5',P.O35,P.U35)}${trw('BTTS (Ya/Tidak)',P.BY,P.BN)}</table>`;
+  a+=`<table class="rt"><tr><th>Gol tim</th><th>Cetak ≥1</th><th>≥2 gol</th><th>Tidak cetak</th></tr><tr><td>Kandang</td><td>${pc(P.HS)}</td><td>${pc(P.HS2)}</td><td>${pc(P.HN)}</td></tr><tr><td>Tandang</td><td>${pc(P.AS)}</td><td>${pc(P.AS2)}</td><td>${pc(P.AN)}</td></tr></table>`;
+  const fi=ah.indexOf(fair),rows=ah.slice(Math.max(0,fi-4),fi+5);
+  a+=`<table class="rt"><tr><th>Handicap kandang</th><th>Menang</th><th>Push</th><th>Kalah</th><th>Odds wajar</th></tr>`+rows.map(x=>`<tr${x===fair?' style="font-weight:600"':''}><td>${fL(x.L)}</td><td>${pc(x.w)}</td><td>${pc(x.p)}</td><td>${pc(x.l)}</td><td>${x.w>0?(1+x.l/x.w).toFixed(2):'-'}</td></tr>`).join('')+'</table>';
+  a+='<p class="mut small">Untuk garis tandang, Menang dan Kalah bertukar. Garis ¼ dihitung setengah menang/kalah.</p>';
+  out.innerHTML=h+`<div class="adv-only">${a}</div>`;parlay();
+}
+
+function parlay(){
+  const pr=$('#pr'),L=[...document.querySelectorAll('.m')].filter(c=>c._r&&c._r.w!=null&&c.querySelector('[data-k=inc]').checked).map(c=>c._r);
+  if(!L.length){pr.innerHTML='<h2>Parlay</h2><p class="mut">Isi data pertandingan di atas dan centang "ikut parlay".</p>';return}
+  let W=1,E=1,O=1,FO=1,all=true,push=false;
+  L.forEach(r=>{W*=r.w;FO*=r.fo;if(r.u>0.005)push=true;if(r.od>1){O*=r.od;E*=r.w*r.od+r.u}else all=false});
+  let h=`<h2>Parlay (${L.length} pertandingan)</h2><table><tr><th>Pertandingan</th><th>Taruhan</th><th>Peluang</th><th>Odds</th></tr>`+
+    L.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.label)}</td><td>${pc(r.w)}</td><td>${r.od>1?r.od.toFixed(2):'-'}</td></tr>`).join('')+'</table>';
+  h+=`<div class="pick neu"><div class="big">${pc(W)}</div><div><b>Peluang semua menang</b><br>Dari 100 parlay seperti ini, sekitar ${Math.round(W*100)} menang semua. Odds wajar gabungan: ${isFinite(FO)?FO.toFixed(2):'-'}.</div></div>`;
+  if(all){
+    const ev=E-1;
+    h+=`<div class="pick ${ev>0?'ok':'bad'}"><div class="big">${ev>0?'✔':'✖'}</div><div><b>${ev>0?'Ada value':'Tidak ada value'}</b><br>Odds gabungan ${O.toFixed(2)}. Rata-rata ${ev>0?'untung':'rugi'} ${Math.abs(ev*100).toFixed(1)}% per taruhan menurut model.</div></div>`;
+    if(!push){const f=O>1?ev/(O-1):0,bk=+$('#bk').value||0,kf=+$('#kf').value||0.25;
+      h+='<details><summary>Saran besar taruhan (opsional)</summary>'+(f>0?`<p class="sm">Batas atas sekitar <b>${(f*kf*100).toFixed(1)}%</b> dari bankroll (${Math.round(bk*f*kf).toLocaleString('id-ID')}) dengan Kelly ×${kf}. Ini batas, bukan keharusan; taruhan lebih kecil lebih aman.</p>`:'<p class="sm">Tidak ada value, jadi tidak ada taruhan yang disarankan.</p>')+'</details>'}
+  }else h+='<p class="mut small">Isi odds di semua pertandingan untuk melihat value parlay.</p>';
+  h+='<p class="mut small">Makin banyak pertandingan, makin kecil peluang menang semuanya, dan kesalahan model ikut berlipat.'+(push?' Peluang di atas menghitung menang penuh saja; nilai value sudah memperhitungkan uang kembali.':'')+'</p>';
+  pr.innerHTML=h;
+}
+
+function add(){
+  const c=document.createElement('section');c.className='card m';c.innerHTML=CARD;$('#list').appendChild(c);
+  c.querySelector('[data-k=pk]').innerHTML=PG.map(([g,ks])=>`<optgroup label="${g}">`+ks.map(k=>`<option value="${k}">${PICKS[k]}</option>`).join('')+'</optgroup>').join('');
+  const ls=c.querySelector('[data-k=ln]');ls.innerHTML=LINES.map(L=>`<option value="${L}">${lineLbl(L)}</option>`).join('');ls.value='0';
+  c.querySelector('.x').onclick=()=>{c.remove();parlay()};wireSel(c);
+  c.addEventListener('input',()=>upd(c));upd(c);
+}
+// ===== Multi-liga: data CSV per liga (rata-rata gol, rho, statistik tim) =====
+const LGS={},LGM={},seen=new Set(),touched=new Set();
+const DIV={E0:'Premier League',E1:'Championship',E2:'League One',E3:'League Two',SC0:'Scottish Premiership',D1:'Bundesliga',D2:'2. Bundesliga',I1:'Serie A',I2:'Serie B',SP1:'La Liga',SP2:'La Liga 2',F1:'Ligue 1',F2:'Ligue 2',N1:'Eredivisie',B1:'Belgian Pro League',P1:'Primeira Liga',T1:'Super Lig',G1:'Super League Greece'};
+const tauF=(x,y,l,m,r)=>x==0&&y==0?1-l*m*r:x==0&&y==1?1+l*r:x==1&&y==0?1+m*r:x==1&&y==1?1-r:1;
+const teams=c=>{const L=LGS[c.querySelector('.lg').value];return L?L.T:null};
+function fillSel(c){
+  const T=teams(c);c.querySelector('.ts').hidden=!T;if(!T)return;
+  const o='<option value="">- pilih tim -</option>'+Object.keys(T).sort().map(n=>`<option>${esc(n)}</option>`).join('');
+  c.querySelectorAll('.th,.ta').forEach(s=>{const v=s.value;s.innerHTML=o;s.value=v});
+}
+function fillLg(c){
+  const ks=Object.keys(LGS),s=c.querySelector('.lg'),v=s.value;
+  c.querySelector('.lgw').hidden=!ks.length;
+  s.innerHTML='<option value="">- manual (pengaturan global) -</option>'+ks.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('');
+  s.value=LGS[v]?v:(ks.length==1?ks[0]:'');
+  fillSel(c);
+}
+function wireSel(c){
+  const lg=c.querySelector('.lg'),th=c.querySelector('.th'),ta=c.querySelector('.ta');
+  const set=(k,v)=>{c.querySelector('[data-k='+k+']').value=v.toFixed(2)};
+  const nm=()=>{if(th.value&&ta.value)c.querySelector('[data-k=nm]').value=th.value+' vs '+ta.value};
+  lg.onchange=()=>{c.querySelectorAll('.th,.ta').forEach(s=>{s.innerHTML=''});fillSel(c);upd(c)};
+  th.onchange=()=>{const T=teams(c),t=T&&T[th.value];if(t&&t.hn){set('hs',t.hs/t.hn);set('hc',t.hc/t.hn)}nm();upd(c)};
+  ta.onchange=()=>{const T=teams(c),t=T&&T[ta.value];if(t&&t.an){set('as',t.as/t.an);set('ac',t.ac/t.an)}nm();upd(c)};
+  const sres=c.querySelector('.sres');
+  const calcSc=()=>{const out=[];
+    [['.sh','hs','hc','Kandang'],['.sa','as','ac','Tandang']].forEach(([q,a,b,l])=>{
+      const m=[...c.querySelector(q).value.matchAll(/(\d+)\s*[-:]\s*(\d+)/g)];
+      if(!m.length)return;
+      const g=m.reduce((x,y)=>x+ +y[1],0),k=m.reduce((x,y)=>x+ +y[2],0);
+      set(a,g/m.length);set(b,k/m.length);
+      out.push(`${l}: ${m.length} laga, ${g} gol (${(g/m.length).toFixed(2)}/laga), ${k} kebobolan (${(k/m.length).toFixed(2)}/laga)`)});
+    sres.innerHTML=out.join('<br>')};
+  c.querySelector('.sh').addEventListener('input',calcSc);
+  c.querySelector('.sa').addEventListener('input',calcSc);
+  fillLg(c);
+}
+// Baca CSV, kelompokkan per liga (kolom Div, atau nama file); liga sama otomatis digabung
+function ingest(txt,fb){
+  try{
+    const ln=txt.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+    const d=ln[0].includes(',')?',':';';
+    const HD=ln[0].split(d).map(s=>s.trim());
+    const ix=(...n)=>HD.findIndex(h=>n.includes(h));
+    const ih=ix('HomeTeam','Home'),ia=ix('AwayTeam','Away'),ig=ix('FTHG','HG'),iv=ix('FTAG','AG'),id=ix('Div');
+    if([ih,ia,ig,iv].some(i=>i<0))return[esc(fb)+': kolom HomeTeam, AwayTeam, FTHG, FTAG tidak ditemukan.'];
+    let n=0;
+    ln.slice(1).forEach(l=>{const f=l.split(d),hg=parseInt(f[ig]),ag=parseInt(f[iv]),h=(f[ih]||'').trim(),a=(f[ia]||'').trim();
+      if(!(h&&a&&hg>=0&&ag>=0))return;
+      const dv=id>=0?(f[id]||'').trim():'',nm=dv?(DIV[dv]||dv):fb;
+      (LGM[nm]=LGM[nm]||[]).push({h,a,hg,ag});touched.add(nm);n++});
+    return n?[]:[esc(fb)+': tidak ada baris skor yang valid.'];
+  }catch(e){return[esc(fb)+': gagal dibaca ('+esc(String(e.message))+').']}
+}
+// Estimasi per liga: rata-rata gol, rho (max likelihood), statistik tim
+function estimate(nm){
+  const M=LGM[nm],en=esc(nm);
+  if(M.length<100){delete LGS[nm];return en+': hanya '+M.length+' laga (minimal ±100, idealnya 2-3 musim), belum dipakai.'}
+  const T={},mk=()=>({hs:0,hc:0,hn:0,as:0,ac:0,an:0});let sh=0,sa=0;
+  M.forEach(m=>{const H=T[m.h]=T[m.h]||mk(),A=T[m.a]=T[m.a]||mk();
+    H.hs+=m.hg;H.hc+=m.ag;H.hn++;A.as+=m.ag;A.ac+=m.hg;A.an++;sh+=m.hg;sa+=m.ag});
+  const N=M.length,LH=sh/N,LA=sa/N,K=3;
+  const av=(sum,n,L)=>(sum+K*L)/(n+K); // shrinkage ke rata-rata liga
+  const R=[]; // λ tiap laga dihitung leave-one-out agar tidak bocor
+  M.forEach(m=>{const H=T[m.h],A=T[m.a];if(H.hn<6||A.an<6)return;
+    const n1=H.hn-1,n2=A.an-1;
+    const lh=av(H.hs-m.hg,n1,LH)*av(A.ac-m.hg,n2,LH)/LH;
+    const la=av(A.as-m.ag,n2,LA)*av(H.hc-m.ag,n1,LA)/LA;
+    R.push({hg:m.hg,ag:m.ag,lh,la})});
+  if(R.length<100){delete LGS[nm];return en+': riwayat tim kurang untuk estimasi rho.'}
+  const ll=r=>{let s=0;for(const m of R){const t=tauF(m.hg,m.ag,m.lh,m.la,r);if(t<=0)return -Infinity;s+=Math.log(t)}return s};
+  let best=0,bl=-Infinity;const g=[];
+  for(let i=-80;i<=40;i++){const r=i*0.005,v=ll(r);g.push([r,v]);if(v>bl){bl=v;best=r}}
+  const ci=g.filter(x=>x[1]>=bl-1.92).map(x=>x[0]);
+  LGS[nm]={name:nm,LH,LA,rho:best,lo:ci[0],hi:ci[ci.length-1],N,T};
+  return '';
+}
+function finish(out){
+  touched.forEach(nm=>{const m=estimate(nm);if(m)out.push(m)});touched.clear();
+  const ks=Object.keys(LGS),cs=document.querySelectorAll('.m');
+  cs.forEach(fillLg);cs.forEach(upd);
+  let h=out.map(x=>'<div class="bad">'+x+'</div>').join('');
+  h+=ks.map(k=>{const L=LGS[k],z=L.lo>0||L.hi<0;
+    return `<div class="kv"><span><b>${esc(k)}</b>: ${L.N} laga, ${Object.keys(L.T).length} tim</span><span>gol K/T ${L.LH.toFixed(2)}/${L.LA.toFixed(2)} · rho ${L.rho.toFixed(3)}${z?'':' ≈0'}</span></div>`}).join('');
+  if(ks.some(k=>!(LGS[k].lo>0||LGS[k].hi<0)))h+='<div class="mut small">≈0: rho tidak berbeda nyata dari 0 (interval 95% mencakup 0).</div>';
+  $('#csvr').innerHTML=h;$('#csvx').hidden=!ks.length;
+}
+async function loadFiles(fs){
+  const out=[];
+  for(const f of fs){
+    const sg=f.name+'|'+f.size+'|'+f.lastModified;
+    if(seen.has(sg)){out.push(esc(f.name)+': sudah pernah diunggah, dilewati.');continue}
+    seen.add(sg);
+    try{out.push(...ingest(await f.text(),f.name.replace(/\.[^.]*$/,'').replace(/\s*\(\d+\)\s*$/,'')))}
+    catch(e){out.push(esc(f.name)+': gagal dibaca.')}
+  }
+  finish(out);
+}
+$('#csvf').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)loadFiles(fs)};
+$('#csvb').onclick=()=>{const t=$('#csvt').value,sg='p|'+t.length+'|'+t.slice(0,200)+'|'+t.slice(-200);
+  if(seen.has(sg))return finish(['Teks ini sudah diproses.']);
+  seen.add(sg);finish(ingest(t,$('#csvn').value.trim()||'Tempel'))};
+$('#csvx').onclick=()=>{for(const k in LGS)delete LGS[k];for(const k in LGM)delete LGM[k];seen.clear();finish([])};
+$('#add').onclick=add;
+$('#set').addEventListener('input',()=>{document.querySelectorAll('.m').forEach(upd);parlay()});
+$('#adv').onchange=e=>document.body.classList.toggle('adv',e.target.checked);
+add();add();
+</script></body></html>
