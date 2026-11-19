@@ -13,28 +13,46 @@ exports.handler = async (event) => {
   if (!ALLOWED.has(league)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Liga tidak diizinkan' }) };
   }
-  for (const season of seasonCodes()) {
+  
+  const seasons = seasonCodes();
+  
+  // Unduh dua musim sekaligus menggunakan "kedok" browser Chrome
+  const texts = await Promise.all(seasons.map(async season => {
     const url = `https://www.football-data.co.uk/mmz4281/${season}/${league}.csv`;
     try {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const text = await r.text();
-      
-      // --- TAMBAHAN BARU: Jika data musim ini kurang dari 100 laga, coba musim lalu ---
-      const lines = text.trim().split(/\r?\n/);
-      if (lines.length < 100) continue; 
-      // --------------------------------------------------------------------------------
-
-      return {
-        statusCode: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Cache-Control': 'public, max-age=21600',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: text,
-      };
-    } catch (_) {}
+      const r = await fetch(url, {
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' 
+        }
+      });
+      if (!r.ok) return null;
+      return await r.text();
+    } catch (_) { return null; }
+  }));
+  
+  let header = '';
+  let combinedLines = [];
+  
+  // Gabungkan data dari kedua musim
+  for (const text of texts) {
+    if (!text) continue;
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) continue;
+    if (!header) header = lines[0];
+    combinedLines.push(...lines.slice(1));
   }
-  return { statusCode: 404, body: JSON.stringify({ error: 'CSV tidak ditemukan' }) };
+  
+  if (combinedLines.length === 0) {
+    return { statusCode: 404, body: JSON.stringify({ error: 'CSV tidak ditemukan' }) };
+  }
+  
+  return {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Cache-Control': 'public, max-age=21600',
+      'Access-Control-Allow-Origin': '*',
+    },
+    body: header + '\n' + combinedLines.join('\n'),
+  };
 };
