@@ -386,4 +386,66 @@ $('#add').onclick=add;
 $('#set').addEventListener('input',()=>{document.querySelectorAll('.m').forEach(upd);parlay()});
 $('#adv').onchange=e=>document.body.classList.toggle('adv',e.target.checked);
 add();add();
-</script></body></html>
+</script>
+<script>
+(function(){
+  if (!location.hostname.endsWith('.netlify.app')) return;
+  const LG_MAP = [
+    ['E0','Premier League'], ['E1','Championship'],
+    ['D1','Bundesliga'], ['D2','2. Bundesliga'],
+    ['I1','Serie A'], ['I2','Serie B'],
+    ['SP1','La Liga'], ['SP2','La Liga 2'],
+    ['F1','Ligue 1'], ['F2','Ligue 2'],
+    ['N1','Eredivisie'], ['P1','Primeira Liga'],
+    ['T1','Super Lig'], ['B1','Belgian Pro League'],
+  ];
+  const LOADED = new Set();
+  let btn, status;
+  function inject(){
+    const card = document.querySelector('#set');
+    if (!card || document.getElementById('auto-leagues')) return;
+    btn = document.createElement('button');
+    btn.id = 'auto-leagues';
+    btn.type = 'button';
+    btn.textContent = '⚡ Muat liga otomatis dari internet';
+    btn.style.cssText = 'width:100%;margin:8px 0;background:var(--ac);color:var(--bg);border:0;font-weight:600;padding:10px;border-radius:8px;cursor:pointer';
+    status = document.createElement('p');
+    status.className = 'mut small';
+    status.id = 'auto-status';
+    status.textContent = 'Mengunduh data musim berjalan dari football-data.co.uk. Butuh internet.';
+    card.insertBefore(status, card.firstChild);
+    card.insertBefore(btn, status);
+    btn.onclick = run;
+  }
+  async function run(){
+    if (btn.disabled) return;
+    btn.disabled = true;
+    let ok=0, fail=0;
+    for (let i=0; i<LG_MAP.length; i++){
+      const [code, name] = LG_MAP[i];
+      if ((name in LGS) || LOADED.has(code)) { ok++; continue; }
+      btn.textContent = 'Memuat ' + name + ' (' + (i+1) + '/' + LG_MAP.length + ')…';
+      try {
+        const r = await fetch('/.netlify/functions/fetch-csv?league=' + code);
+        if (!r.ok) { fail++; continue; }
+        const text = await r.text();
+        if (!text || text.length < 200) { fail++; continue; }
+        ingest(text, code);
+        LOADED.add(code);
+        ok++;
+      } catch(e){ fail++; }
+    }
+    finish([]);
+    btn.textContent = '✓ ' + ok + ' liga dimuat' + (fail ? ', ' + fail + ' gagal' : '') + ' — klik untuk muat ulang';
+    btn.disabled = false;
+    status.textContent = 'Berhasil ' + ok + ' liga' + (fail ? ', ' + fail + ' gagal' : '') + '. Pilih liga di kartu pertandingan untuk melihat daftar tim.';
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inject);
+  } else {
+    inject();
+  }
+})();
+</script>
+</body></html>
+
