@@ -500,6 +500,7 @@ $('#set').addEventListener('input',()=>{document.querySelectorAll('.m').forEach(
 $('#adv').onchange=e=>document.body.classList.toggle('adv',e.target.checked);
 add();add();
 </script>
+<script>
 (function(){
   if (!location.hostname.endsWith('.netlify.app')) return;
   const LG_MAP = [
@@ -561,98 +562,5 @@ add();add();
     inject();
   }
 })();
-</script><script>
-(function() {
-  const SAVE_KEY = 'parlay_autosave_v1';
-
-  // Fungsi untuk menyimpan semua isi form
-  function saveState() {
-    const globals = {};
-    ['lh','la','rho','bk','kf','xw','kp','ha'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) globals[id] = el.value;
-    });
-
-    const cards = [];
-    document.querySelectorAll('.m').forEach(c => {
-      const cardData = { inputs: [] };
-      c.querySelectorAll('input, select').forEach(el => {
-        cardData.inputs.push({
-          k: el.getAttribute('data-k'),
-          cls: el.className,
-          val: el.value,
-          chk: el.checked
-        });
-      });
-      cards.push(cardData);
-    });
-
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ globals, cards }));
-  }
-
-  // Fungsi untuk memuat data saat halaman dibuka
-  function loadState() {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    try {
-      const data = JSON.parse(raw);
-      
-      // Kembalikan pengaturan global
-      if (data.globals) {
-        Object.keys(data.globals).forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = data.globals[id];
-        });
-      }
-
-      // Kembalikan data tiap pertandingan
-      if (data.cards && data.cards.length > 0) {
-        document.getElementById('list').innerHTML = ''; 
-        data.cards.forEach(cardData => {
-          add(); // Buat kartu kosong
-          const c = document.querySelector('.m:last-child');
-          
-          // Set liga
-          const lgEl = c.querySelector('.lg');
-          const savedLg = cardData.inputs.find(i => i.cls && i.cls.includes('lg'));
-          if (savedLg && lgEl) {
-            lgEl.value = savedLg.val;
-            if (lgEl.onchange) lgEl.onchange();
-          }
-
-          // Set tim kandang/tandang
-          const thEl = c.querySelector('.th');
-          const taEl = c.querySelector('.ta');
-          const savedTh = cardData.inputs.find(i => i.cls && i.cls.includes('th'));
-          const savedTa = cardData.inputs.find(i => i.cls && i.cls.includes('ta'));
-          if (savedTh && thEl) thEl.value = savedTh.val;
-          if (savedTa && taEl) taEl.value = savedTa.val;
-
-          // Set semua angka & odds
-          cardData.inputs.forEach(inp => {
-            if (inp.k) {
-              const el = c.querySelector(`[data-k="${inp.k}"]`);
-              if (el) {
-                el.value = inp.val;
-                el.checked = inp.chk;
-              }
-            }
-          });
-          upd(c);
-        });
-      }
-    } catch(e) { console.error('Gagal memuat data', e); }
-  }
-
-  // Pasang "perekam" setiap kali ada ketikan atau perubahan
-  document.body.addEventListener('input', saveState);
-  document.body.addEventListener('change', saveState);
-
-  // Jalankan pemuatan data setelah semua script utama selesai
-  setTimeout(() => {
-    loadState();
-    parlay();
-  }, 100);
-})();
-</script></body></html>
-
+</script>
+</body></html>
