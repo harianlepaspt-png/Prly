@@ -84,7 +84,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .hd .nm { flex: 1; margin: 0; font-weight: 700; border: none; background: transparent; font-size: 16px; color: var(--ac); padding: 4px 0; }
 .hd .nm:focus { box-shadow: none; border-bottom: 1px solid var(--ac); border-radius: 0; }
 
-/* Desain Logo Tim */
 .match-header { display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid var(--bd); }
 .team-box { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; }
 .team-logo { width: 48px; height: 48px; object-fit: contain; border-radius: 50%; background: #fff; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); display: none; }
@@ -409,10 +408,8 @@ async function getBadge(name, imgEl, nameEl, vsEl) {
     nameEl.style.display = 'block';
     nameEl.textContent = name;
     
-    // Fallback jika API gagal / tim tidak ketemu
     const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1e293b&color=00ff87&bold=true&size=128&rounded=true`;
     
-    // Cek Cache dulu
     let cache = JSON.parse(localStorage.getItem('badges_v1') || '{}');
     if (cache[name]) { 
         imgEl.src = cache[name]; 
@@ -420,7 +417,7 @@ async function getBadge(name, imgEl, nameEl, vsEl) {
         return; 
     }
 
-    imgEl.src = fallback; // Set sementara ke inisial
+    imgEl.src = fallback;
 
     try {
         const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(name)}`);
@@ -474,7 +471,7 @@ function wireSel(c){
     const T=teams(c),t=T&&T[th.value];
     if(t&&t.hn){set('hs',t.hs/t.hn);set('hc',t.hc/t.hn)}
     nm(); 
-    getBadge(th.value, imgH, nameH, vs); // Panggil Logo
+    getBadge(th.value, imgH, nameH, vs); 
     upd(c);
   };
   
@@ -482,7 +479,7 @@ function wireSel(c){
     const T=teams(c),t=T&&T[ta.value];
     if(t&&t.an){set('as',t.as/t.an);set('ac',t.ac/t.an)}
     nm(); 
-    getBadge(ta.value, imgA, nameA, vs); // Panggil Logo
+    getBadge(ta.value, imgA, nameA, vs); 
     upd(c);
   };
   
@@ -559,7 +556,9 @@ add();add();
 
 <script>
 (function(){
-  if (!location.hostname.endsWith('.netlify.app')) return;
+  // Diperbarui: Mengizinkan domain vercel.app dan netlify.app
+  if (!location.hostname.includes('vercel.app') && !location.hostname.includes('netlify.app')) return;
+  
   const LG_MAP = [
     ['E0','Premier League'], ['E1','Championship'],
     ['E2','League One'], ['E3','League Two'], ['EC','National League'],
@@ -599,7 +598,8 @@ add();add();
       if ((name in LGS) || LOADED.has(code)) { ok++; continue; }
       btn.textContent = 'Memuat ' + name + ' (' + (i+1) + '/' + LG_MAP.length + ')…';
       try {
-        const r = await fetch('/.netlify/functions/fetch-csv?league=' + code);
+        // Diperbarui: URL fetch diarahkan ke /api/fetch-csv (Vercel)
+        const r = await fetch('/api/fetch-csv?league=' + code);
         if (!r.ok) { fail++; continue; }
         const text = await r.text();
         if (!text || text.length < 200) { fail++; continue; }
@@ -623,7 +623,7 @@ add();add();
 
 <script>
 (function() {
-  const SAVE_KEY = 'parlay_autosave_v5';
+  const SAVE_KEY = 'parlay_autosave_v6';
   function saveState() {
     const globals = {};
     ['lh','la','rho','bk','kf','xw','kp','ha'].forEach(id => {
@@ -683,7 +683,6 @@ add();add();
               }
             }
           });
-          // Load logos after state restore
           if (thEl.value) c.querySelector('.th').onchange();
           if (taEl.value) c.querySelector('.ta').onchange();
           
