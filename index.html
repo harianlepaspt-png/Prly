@@ -599,7 +599,7 @@ add();add();
       if ((name in LGS) || LOADED.has(code)) { ok++; continue; }
       btn.textContent = 'Memuat ' + name + ' (' + (i+1) + '/' + LG_MAP.length + ')…';
       try {
-        const r = await fetch('/api/functions/fetch-csv?league=' + code);
+        const r = await fetch('/.netlify/functions/fetch-csv?league=' + code);
         if (!r.ok) { fail++; continue; }
         const text = await r.text();
         if (!text || text.length < 200) { fail++; continue; }
