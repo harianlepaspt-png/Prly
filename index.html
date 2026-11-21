@@ -437,7 +437,18 @@ function add(){
   c.addEventListener('input',()=>upd(c));upd(c);
 }
 
-// --- FITUR LOGO TIM ---
+// --- FITUR LOGO TIM (TheSportsDB + Fallback Brutalism) ---
+const TEAM_ALIASES = {
+  "Man City": "Manchester City", "Man United": "Manchester United", "Nott'm Forest": "Nottingham Forest",
+  "Spurs": "Tottenham", "Brighton": "Brighton & Hove Albion", "Newcastle": "Newcastle United",
+  "West Ham": "West Ham United", "Wolves": "Wolverhampton Wanderers", "West Brom": "West Bromwich Albion",
+  "QPR": "Queens Park Rangers", "M'gladbach": "Borussia Monchengladbach", "Ein Frankfurt": "Eintracht Frankfurt",
+  "Leverkusen": "Bayer Leverkusen", "Milan": "AC Milan", "Inter": "Inter Milan", "Roma": "AS Roma",
+  "Ath Madrid": "Atletico Madrid", "Sociedad": "Real Sociedad", "Betis": "Real Betis",
+  "Paris SG": "Paris Saint-Germain", "Lyon": "Olympique Lyonnais", "Marseille": "Olympique de Marseille",
+  "PSV": "PSV Eindhoven", "Sp Lisbon": "Sporting CP", "Fenerbahce": "Fenerbahce", "St Etienne": "Saint-Etienne"
+};
+
 async function getBadge(name, imgEl, nameEl, vsEl) {
     if (!name || name === '- pilih tim -') { 
         imgEl.style.display = 'none'; 
@@ -450,9 +461,12 @@ async function getBadge(name, imgEl, nameEl, vsEl) {
     nameEl.style.display = 'block';
     nameEl.textContent = name;
     
-    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=09090b&color=ccff00&bold=true&size=128&rounded=false`;
-    
-    let cache = JSON.parse(localStorage.getItem('badges_v1') || '{}');
+    // Desain Fallback Brutalism (SVG langsung di-render, tanpa internet)
+    const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" fill="#09090b" stroke="#ccff00" stroke-width="8"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Space Mono, monospace" font-size="48" font-weight="bold" fill="#ccff00">${initials}</text></svg>`;
+    const fallback = `data:image/svg+xml;base64,${btoa(svg)}`;
+
+    let cache = JSON.parse(localStorage.getItem('badges_v2') || '{}'); // v2: cache baru
     if (cache[name]) { 
         imgEl.src = cache[name]; 
         checkVS(imgEl.closest('.match-header'));
@@ -462,15 +476,19 @@ async function getBadge(name, imgEl, nameEl, vsEl) {
     imgEl.src = fallback;
 
     try {
-        const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(name)}`);
+        const searchName = TEAM_ALIASES[name] || name;
+        // Menggunakan API Key 123 (Free tier terbaru)
+        const r = await fetch(`https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=${encodeURIComponent(searchName)}`);
+        if (!r.ok) throw new Error('API Limit');
         const data = await r.json();
+        
         if (data.teams && data.teams[0] && data.teams[0].strTeamBadge) {
             imgEl.src = data.teams[0].strTeamBadge;
             cache[name] = data.teams[0].strTeamBadge;
-            localStorage.setItem('badges_v1', JSON.stringify(cache));
+            localStorage.setItem('badges_v2', JSON.stringify(cache));
         }
     } catch (e) {
-        console.log('Gagal load logo', name);
+        console.log('API gagal, pakai inisial keren untuk:', name);
     }
     checkVS(imgEl.closest('.match-header'));
 }
@@ -480,6 +498,7 @@ function checkVS(container) {
     const a = container.querySelector('.img-a').style.display === 'block';
     container.querySelector('.vs-badge').style.display = (h && a) ? 'block' : 'none';
 }
+// -----------------------------------
 
 const LGS={},LGM={},seen=new Set(),touched=new Set();
 const DIV={E0:'Premier League',E1:'Championship',E2:'League One',E3:'League Two',SC0:'Scottish Premiership',D1:'Bundesliga',D2:'2. Bundesliga',I1:'Serie A',I2:'Serie B',SP1:'La Liga',SP2:'La Liga 2',F1:'Ligue 1',F2:'Ligue 2',N1:'Eredivisie',B1:'Belgian Pro League',P1:'Primeira Liga',T1:'Super Lig',G1:'Super League Greece'};
@@ -667,7 +686,7 @@ add();add();
 
 <script>
 (function() {
-  const SAVE_KEY = 'parlay_autosave_v7';
+  const SAVE_KEY = 'parlay_autosave_v8';
   function saveState() {
     const globals = {};
     ['lh','la','rho','bk','kf','xw','kp','ha'].forEach(id => {
