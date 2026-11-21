@@ -227,6 +227,7 @@ function legOf(r,pk,ln){
 }
 const num=(c,k)=>parseFloat(c.querySelector('[data-k='+k+']').value);
 const gv=(c,k)=>c.querySelector('[data-k='+k+']').value;
+
 const CARD=`<div class="hd"><input class="nm" data-k="nm" placeholder="Nama Pertandingan"><label class="inc"><input type="checkbox" data-k="inc" checked>Parlay</label><button class="x" title="Hapus">✕</button></div>
 <div class="lgw" hidden style="margin:8px 0"><label>Liga (CSV)<select class="lg"></select></label></div>
 <div class="g2 ts" hidden>
@@ -263,6 +264,23 @@ const CARD=`<div class="hd"><input class="nm" data-k="nm" placeholder="Nama Pert
 <label>Skor Kandang<textarea class="sh" rows="2" placeholder="2-1 0-0 3-2"></textarea></label>
 <label>Skor Tandang<textarea class="sa" rows="2" placeholder="1-1 0-2 1-0"></textarea></label>
 <div class="mut small sres"></div></details>
+
+<details style="border: 1px dashed var(--ac); padding: 8px; margin-top: 12px; border-radius: 4px;">
+<summary style="color: var(--ac); margin-top:0;">🧠 Smart Adjustments</summary>
+<div class="g2" style="margin-bottom:0;">
+  <div>
+    <label class="sw" style="margin-top:4px"><input type="checkbox" data-k="adj_ha"> Pemain Kunci Kandang Absen</label>
+    <label class="sw" style="margin-top:4px"><input type="checkbox" data-k="adj_hf"> Kandang Lelah</label>
+    <label class="sw" style="margin-top:4px"><input type="checkbox" data-k="adj_hm"> Motivasi Kandang Rendah</label>
+  </div>
+  <div>
+    <label class="sw" style="margin-top:4px"><input type="checkbox" data-k="adj_aa"> Pemain Kunci Tandang Absen</label>
+    <label class="sw" style="margin-top:4px"><input type="checkbox" data-k="adj_af"> Tandang Lelah</label>
+    <label class="sw" style="margin-top:4px"><input type="checkbox" data-k="adj_am"> Motivasi Tandang Rendah</label>
+  </div>
+</div>
+</details>
+
 <p class="step">2. Taruhan & Odds</p>
 <div class="g2">
 <label>Pilih Taruhan<select data-k="pk"></select></label>
@@ -288,6 +306,21 @@ function calc(c){
   const nh=nn('nh'),na=nn('na'),lhS=sm(nh,nn('gh'),pr('pgh'))*sm(na,nn('ca'),pr('pca'))/(G0*G0)*LH2,laS=sm(na,nn('ga'),pr('pga'))*sm(nh,nn('ch'),pr('pch'))/(G0*G0)*LA2;
   if(!(lh>0))lh=SS?lhS:B('hs','hx')*B('ac','axa')/LH*(LH2/LH);
   if(!(la>0))la=SS?laS:B('as','ax')*B('hc','hxa')/LA*(LA2/LA);
+  
+  // --- SMART ADJUSTMENTS ---
+  let lhAdj = 1, laAdj = 1;
+  if(c.querySelector('[data-k=adj_ha]').checked) lhAdj *= 0.85;
+  if(c.querySelector('[data-k=adj_hf]').checked) lhAdj *= 0.90;
+  if(c.querySelector('[data-k=adj_hm]').checked) lhAdj *= 0.90;
+  
+  if(c.querySelector('[data-k=adj_aa]').checked) laAdj *= 0.85;
+  if(c.querySelector('[data-k=adj_af]').checked) laAdj *= 0.90;
+  if(c.querySelector('[data-k=adj_am]').checked) laAdj *= 0.90;
+  
+  lh *= lhAdj;
+  la *= laAdj;
+  // -------------------------
+
   if(!(lh>0&&la>0&&lh<8&&la<8))return null;
   return{lh,la,hov,hb,xw:W,xu:['hx','hxa','ax','axa'].some(k=>num(c,k)>0),sw:SS?[nh+K>0?nh/(nh+K):0,na+K>0?na/(na+K):0]:null,...model(lh,la,rho)};
 }
@@ -311,6 +344,10 @@ function upd(c){
   const un=lg.u>0.005?` · Push ${pc(lg.u)}`:'';
   let h=`<div class="pick ${cls}"><div class="big">${pc(lg.w)}</div><div><b>${esc(r.label)}</b>${un}<br>${msg}</div></div>`;
   
+  // Tampilkan indikator jika ada adjustment aktif
+  const adjActive = ['adj_ha','adj_hf','adj_hm','adj_aa','adj_af','adj_am'].some(k => c.querySelector(`[data-k=${k}]`).checked);
+  if (adjActive) h += `<p class="sm ok" style="margin-top: 8px;">🧠 Smart Adjustment Aktif (λ disesuaikan).</p>`;
+
   h+='<p class="sub">Peluang</p>'+bar('Kandang',P.H)+bar('Seri',P.D)+bar('Tandang',P.A);
   h+=`<p class="sm">O2.5: <b>${pc(P.O25)}</b> · U2.5: <b>${pc(P.U25)}</b> · BTTS: <b>${pc(P.BY)}</b></p>`;
   h+=`<p class="sm">Skor: <b>${top[0][0]}</b> (${pc(top[0][1])})</p>`;
@@ -518,7 +555,7 @@ add();add();
 
 <script>
 (function() {
-  const SAVE_KEY = 'parlay_autosave_v2';
+  const SAVE_KEY = 'parlay_autosave_v3';
   function saveState() {
     const globals = {};
     ['lh','la','rho','bk','kf','xw','kp','ha'].forEach(id => {
