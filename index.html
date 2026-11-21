@@ -185,9 +185,9 @@ const pois=(k,l)=>Math.exp(-l)*Math.pow(l,k)/fact[k];
 const pc=x=>(x*100).toFixed(1)+'%';
 const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const fL=L=>L>0?'+'+L:''+L;
-const PICKS={H:'Kandang',D:'Seri',A:'Tandang','1X':'1X (Kandang/Seri)',X2:'X2 (Seri/Tandang)',O15:'Over 1.5',U15:'Under 1.5',O25:'Over 2.5',U25:'Under 2.5',O35:'Over 3.5',U35:'Under 3.5',BY:'BTTS Ya',BN:'BTTS Tidak',HS:'Kandang Cetak',HS2:'Kandang ≥2 Gol',HN:'Kandang Tanpa Gol',AS:'Tandang Cetak',AS2:'Tandang ≥2 Gol',AN:'Tandang Tanpa Gol',AHH:'Asian Handicap Kandang',AHA:'Asian Handicap Tandang'};
-const PG=[['Hasil Akhir',['H','D','A','1X','X2']],['Jumlah Gol',['O15','U15','O25','U25','O35','U35','BY','BN']],['Gol Tim',['HS','HS2','HN','AS','AS2','AN']],['Asian Handicap',['AHH','AHA']]];
-const LINES=Array.from({length:21},(_,i)=>(i-10)/4);
+const PICKS={H:'Kandang',D:'Seri',A:'Tandang','1X':'1X (Kandang/Seri)',X2:'X2 (Seri/Tandang)',O05:'Over 0.5',U05:'Under 0.5',O15:'Over 1.5',U15:'Under 1.5',O25:'Over 2.5',U25:'Under 2.5',O35:'Over 3.5',U35:'Under 3.5',O45:'Over 4.5',U45:'Under 4.5',O55:'Over 5.5',U55:'Under 5.5',O65:'Over 6.5',U65:'Under 6.5',BY:'BTTS Ya',BN:'BTTS Tidak',AHH:'Asian Handicap Kandang',AHA:'Asian Handicap Tandang'};
+const PG=[['Hasil Akhir',['H','D','A','1X','X2']],['Jumlah Gol',['O05','U05','O15','U15','O25','U25','O35','U35','O45','U45','O55','U55','O65','U65','BY','BN']],['Asian Handicap',['AHH','AHA']]];
+const LINES=Array.from({length:41},(_,i)=>(i-20)/4);
 const lineLbl=L=>fL(L)+(L==0?' (Seri)':'')+(L*4%2?` (${fL(L-0.25)} & ${fL(L+0.25)})`:'');
 const plabel=(pk,ln)=>pk=='AHH'||pk=='AHA'?PICKS[pk]+' '+fL(+ln):PICKS[pk];
 
@@ -203,13 +203,24 @@ function matrix(lh,la,rho){
   return m.map(r=>r.map(p=>p/sum));
 }
 function model(lh,la,rho){
-  const m=matrix(lh,la,rho),P={H:0,D:0,A:0,O15:0,O25:0,O35:0,BY:0,HN:0,AN:0,HS2:0,AS2:0},sc=[],dd={};
+  const m=matrix(lh,la,rho),P={H:0,D:0,A:0,O05:0,O15:0,O25:0,O35:0,O45:0,O55:0,O65:0,BY:0},sc=[],dd={};
   m.forEach((r,i)=>r.forEach((p,j)=>{
     if(i>j)P.H+=p;else if(i==j)P.D+=p;else P.A+=p;
-    const t=i+j;if(t>=2)P.O15+=p;if(t>=3)P.O25+=p;if(t>=4)P.O35+=p;
-    if(i&&j)P.BY+=p;if(!i)P.HN+=p;if(!j)P.AN+=p;if(i>=2)P.HS2+=p;if(j>=2)P.AS2+=p;
+    const t=i+j;
+    if(t>=1)P.O05+=p;
+    if(t>=2)P.O15+=p;
+    if(t>=3)P.O25+=p;
+    if(t>=4)P.O35+=p;
+    if(t>=5)P.O45+=p;
+    if(t>=6)P.O55+=p;
+    if(t>=7)P.O65+=p;
+    if(i&&j)P.BY+=p;
     dd[i-j]=(dd[i-j]||0)+p;sc.push([i+'-'+j,p]);}));
-  P['1X']=P.H+P.D;P.X2=P.D+P.A;P.U15=1-P.O15;P.U25=1-P.O25;P.U35=1-P.O35;P.BN=1-P.BY;P.HS=1-P.HN;P.AS=1-P.AN;
+  P['1X']=P.H+P.D;P.X2=P.D+P.A;
+  P.U05=1-P.O05;
+  P.U15=1-P.O15;P.U25=1-P.O25;P.U35=1-P.O35;
+  P.U45=1-P.O45;P.U55=1-P.O55;P.U65=1-P.O65;
+  P.BN=1-P.BY;
   const sum=f=>Object.keys(dd).reduce((a,d)=>f(+d)?a+dd[d]:a,0); 
   const comp=c=>({w:sum(d=>d+c>0),p:sum(d=>d+c==0),l:sum(d=>d+c<0)});
   const ah=LINES.map(L=>{const r=(L*4%2?[L-0.25,L+0.25]:[L]).map(comp),av=f=>r.reduce((a,x)=>a+x[f],0)/r.length;
@@ -251,19 +262,6 @@ const CARD=`<div class="hd"><input class="nm" data-k="nm" placeholder="Nama Pert
 <label>Tandang xG<input data-k="ax" type="number" step="0.01" inputmode="decimal"></label>
 <label>Tandang xGA<input data-k="axa" type="number" step="0.01" inputmode="decimal"></label>
 </div></details>
-<details><summary>Turnamen Baru (0-3 Laga)</summary>
-<div class="g2">
-<label>Kandang Main<input data-k="nh" type="number" step="1" min="0" inputmode="numeric"></label>
-<label>Tandang Main<input data-k="na" type="number" step="1" min="0" inputmode="numeric"></label>
-<label>Kandang Gol<input data-k="gh" type="number" step="1" min="0" inputmode="numeric"></label>
-<label>Tandang Gol<input data-k="ga" type="number" step="1" min="0" inputmode="numeric"></label>
-<label>Kandang Bobol<input data-k="ch" type="number" step="1" min="0" inputmode="numeric"></label>
-<label>Tandang Bobol<input data-k="ca" type="number" step="1" min="0" inputmode="numeric"></label>
-</div></details>
-<details><summary>Hitung dari Skor Manual</summary>
-<label>Skor Kandang<textarea class="sh" rows="2" placeholder="2-1 0-0 3-2"></textarea></label>
-<label>Skor Tandang<textarea class="sa" rows="2" placeholder="1-1 0-2 1-0"></textarea></label>
-<div class="mut small sres"></div></details>
 
 <details style="border: 1px dashed var(--ac); padding: 8px; margin-top: 12px; border-radius: 4px;">
 <summary style="color: var(--ac); margin-top:0;">🧠 Smart Adjustments</summary>
@@ -302,10 +300,9 @@ function calc(c){
   let lh=num(c,'mh'),la=num(c,'ma');
   const hb=(LH/LA-1)*100,hg=gv(c,'ha')!==''?parseFloat(gv(c,'ha')):parseFloat($('#ha').value),hov=isFinite(hg)?Math.max(-50,Math.min(150,hg)):null,hr=hov==null?LH/LA:1+hov/100,LH2=hov==null?LH:(LH+LA)*hr/(1+hr),LA2=hov==null?LA:(LH+LA)/(1+hr);
   const W=Math.max(0,Math.min(1,(parseFloat($('#xw').value)||0)/100)),B=(g,x)=>{const a=num(c,g),b=num(c,x);return b>0?(a>=0?W*b+(1-W)*a:b):a}; 
-  const SS=gv(c,'nh')!==''||gv(c,'na')!=='',K=Math.max(0,parseFloat($('#kp').value)||0),G0=(LH+LA)/2,nn=k=>Math.max(0,parseFloat(gv(c,k))||0),pr=k=>{const v=num(c,k);return v>0?v:G0},sm=(n,t,p)=>n+K>0?(t+K*p)/(n+K):p; 
-  const nh=nn('nh'),na=nn('na'),lhS=sm(nh,nn('gh'),pr('pgh'))*sm(na,nn('ca'),pr('pca'))/(G0*G0)*LH2,laS=sm(na,nn('ga'),pr('pga'))*sm(nh,nn('ch'),pr('pch'))/(G0*G0)*LA2;
-  if(!(lh>0))lh=SS?lhS:B('hs','hx')*B('ac','axa')/LH*(LH2/LH);
-  if(!(la>0))la=SS?laS:B('as','ax')*B('hc','hxa')/LA*(LA2/LA);
+  
+  if(!(lh>0))lh=B('hs','hx')*B('ac','axa')/LH*(LH2/LH);
+  if(!(la>0))la=B('as','ax')*B('hc','hxa')/LA*(LA2/LA);
   
   // --- SMART ADJUSTMENTS ---
   let lhAdj = 1, laAdj = 1;
@@ -322,7 +319,7 @@ function calc(c){
   // -------------------------
 
   if(!(lh>0&&la>0&&lh<8&&la<8))return null;
-  return{lh,la,hov,hb,xw:W,xu:['hx','hxa','ax','axa'].some(k=>num(c,k)>0),sw:SS?[nh+K>0?nh/(nh+K):0,na+K>0?na/(na+K):0]:null,...model(lh,la,rho)};
+  return{lh,la,hov,hb,xw:W,xu:['hx','hxa','ax','axa'].some(k=>num(c,k)>0),...model(lh,la,rho)};
 }
 const bar=(l,p)=>`<div class="bar"><span>${l}</span><div class="tr"><i style="width:${p*100}%"></i></div><b>${pc(p)}</b></div>`;
 
@@ -354,7 +351,15 @@ function upd(c){
   
   const trw=(l,a,b)=>`<tr><td>${l}</td><td>${pc(a)}</td><td>${pc(b)}</td></tr>`;
   let a=`<p class="mut small">λ: <b>${lh.toFixed(2)}</b> - <b>${la.toFixed(2)}</b></p>`;
-  a+=`<table class="rt"><tr><th>Total</th><th>Over</th><th>Under</th></tr>${trw('1.5',P.O15,P.U15)}${trw('2.5',P.O25,P.U25)}${trw('3.5',P.O35,P.U35)}${trw('BTTS',P.BY,P.BN)}</table>`;
+  a+=`<table class="rt"><tr><th>Total</th><th>Over</th><th>Under</th></tr>
+    ${trw('0.5',P.O05,P.U05)}
+    ${trw('1.5',P.O15,P.U15)}
+    ${trw('2.5',P.O25,P.U25)}
+    ${trw('3.5',P.O35,P.U35)}
+    ${trw('4.5',P.O45,P.U45)}
+    ${trw('5.5',P.O55,P.U55)}
+    ${trw('6.5',P.O65,P.U65)}
+    ${trw('BTTS',P.BY,P.BN)}</table>`;
   const fi=ah.indexOf(fair),rows=ah.slice(Math.max(0,fi-3),fi+4);
   a+=`<table class="rt"><tr><th>AH</th><th>M</th><th>P</th><th>K</th><th>Odds</th></tr>`+rows.map(x=>`<tr${x===fair?' style="font-weight:600;color:var(--ac)"':''}><td>${fL(x.L)}</td><td>${pc(x.w)}</td><td>${pc(x.p)}</td><td>${pc(x.l)}</td><td>${x.w>0?(1+x.l/x.w).toFixed(2):'-'}</td></tr>`).join('')+'</table>';
   out.innerHTML=h+`<div class="adv-only">${a}</div>`;parlay();
@@ -407,17 +412,6 @@ function wireSel(c){
   lg.onchange=()=>{c.querySelectorAll('.th,.ta').forEach(s=>{s.innerHTML=''});fillSel(c);upd(c)};
   th.onchange=()=>{const T=teams(c),t=T&&T[th.value];if(t&&t.hn){set('hs',t.hs/t.hn);set('hc',t.hc/t.hn)}nm();upd(c)};
   ta.onchange=()=>{const T=teams(c),t=T&&T[ta.value];if(t&&t.an){set('as',t.as/t.an);set('ac',t.ac/t.an)}nm();upd(c)};
-  const sres=c.querySelector('.sres');
-  const calcSc=()=>{const out=[];
-    [['.sh','hs','hc','Kandang'],['.sa','as','ac','Tandang']].forEach(([q,a,b,l])=>{
-      const m=[...c.querySelector(q).value.matchAll(/(\d+)\s*[-:]\s*(\d+)/g)];
-      if(!m.length)return;
-      const g=m.reduce((x,y)=>x+ +y[1],0),k=m.reduce((x,y)=>x+ +y[2],0);
-      set(a,g/m.length);set(b,k/m.length);
-      out.push(`${l}: ${m.length} laga`)});
-    sres.innerHTML=out.join('<br>')};
-  c.querySelector('.sh').addEventListener('input',calcSc);
-  c.querySelector('.sa').addEventListener('input',calcSc);
   fillLg(c);
 }
 function ingest(txt,fb){
@@ -555,7 +549,7 @@ add();add();
 
 <script>
 (function() {
-  const SAVE_KEY = 'parlay_autosave_v3';
+  const SAVE_KEY = 'parlay_autosave_v4';
   function saveState() {
     const globals = {};
     ['lh','la','rho','bk','kf','xw','kp','ha'].forEach(id => {
