@@ -130,23 +130,140 @@ ol { padding-left: 20px; margin: 8px 0; }
 .bar { display: grid; grid-template-columns: 62px 1fr 52px; gap: 8px; align-items: center; font-size: 13px; margin: 4px 0; }
 .tr { height: 8px; background: var(--bd); border-radius: 4px; overflow: hidden; }
 .tr i { display: block; height: 100%; background: var(--ac); border-radius: 4px; transition: width 0.5s ease; }
-.bar b { text-align: right; font-weight: 600; }
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap');
 
-.pick {
-  display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 12px;
-  border-radius: 10px; border: 1px solid var(--bd); background: var(--bg); font-size: 14px;
+:root {
+  --bg: #0b0f19; /* Hitam kebiruan */
+  --fg: #e2e8f0; /* Putih tulang */
+  --mut: #94a3b8;
+  --card: #1e293b; /* Abu-abu gelap */
+  --bd: #334155;
+  --ac: #00ff87; /* Hijau Neon */
+  --ok: #00ff87;
+  --bad: #ff4757;
+  box-sizing: border-box;
 }
-.pick.ok { border-color: var(--ok); background: rgba(21, 128, 61, 0.05); }
-.pick.bad { border-color: var(--bad); background: rgba(185, 28, 28, 0.05); }
-.big { font-size: 24px; font-weight: 700; min-width: 64px; text-align: center; }
-.pick.ok .big { color: var(--ok); }
-.pick.bad .big { color: var(--bad); }
+html { scroll-padding-top: env(safe-area-inset-top,0px); }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 'Inter', system-ui, sans-serif;
+  margin: 0 auto;
+  padding: 16px 12px;
+  max-width: 640px;
+}
 
-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+h1 { 
+  font-family: 'Oswald', sans-serif; 
+  font-size: 24px; 
+  text-transform: uppercase; 
+  letter-spacing: 1px; 
+  text-align: center; 
+  color: var(--ac);
+  text-shadow: 0 0 10px rgba(0, 255, 135, 0.3);
+  margin: 10px 0 20px; 
+}
+h2 { 
+  font-family: 'Oswald', sans-serif; 
+  font-size: 18px; 
+  text-transform: uppercase; 
+  border-bottom: 2px solid var(--ac); 
+  padding-bottom: 6px; 
+  margin: 0 0 12px; 
+}
+
+.mut { color: var(--mut); margin: 4px 0; }
+.small { font-size: 11px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-left: 4px solid var(--ac); /* Garis aksen kiri ala sporty */
+  border-radius: 6px;
+  padding: 14px;
+  margin: 12px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+label { display: block; font-size: 11px; font-weight: 600; color: var(--ac); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;}
+input, select, textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  background: #0f172a;
+  color: #fff;
+  margin-top: 2px;
+}
+input:focus, select:focus { outline: none; border-color: var(--ac); box-shadow: 0 0 5px rgba(0, 255, 135, 0.3); }
+
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 10px 0; }
+.hd { display: flex; gap: 8px; align-items: center; margin-bottom: 10px;}
+.hd .nm { flex: 1; margin: 0; font-weight: 700; border: none; background: transparent; font-size: 16px; color: var(--ac); padding: 4px 0; }
+.hd .nm:focus { box-shadow: none; border-bottom: 1px solid var(--ac); border-radius: 0; }
+
+.inc, label.sw { display: flex; gap: 6px; align-items: center; white-space: nowrap; font-size: 12px; text-transform: uppercase; color: var(--fg); }
+.inc input, label.sw input { width: auto; margin: 0; }
+
+button {
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+#add {
+  width: 100%;
+  background: var(--ac);
+  color: #000;
+  border: 0;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 12px;
+  box-shadow: 0 4px 10px rgba(0, 255, 135, 0.2);
+}
+
+summary { cursor: pointer; color: var(--ac); font-size: 12px; text-transform: uppercase; font-weight: 600; margin-top: 8px; }
+ol { padding-left: 20px; margin: 8px 0; font-size: 13px;}
+
+/* Papan Skor / Hasil */
+.pick {
+  display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 16px;
+  border-radius: 4px; border: 2px solid var(--bd); background: #0f172a; font-size: 13px;
+}
+.pick.ok { border-color: var(--ok); box-shadow: 0 0 15px rgba(0, 255, 135, 0.2); }
+.pick.bad { border-color: var(--bad); box-shadow: 0 0 15px rgba(255, 71, 87, 0.2); }
+.big { 
+  font-family: 'Oswald', sans-serif; 
+  font-size: 32px; 
+  font-weight: 700; 
+  min-width: 80px; 
+  text-align: center; 
+  line-height: 1;
+}
+.pick.ok .big { color: var(--ok); text-shadow: 0 0 8px rgba(0,255,135,0.5); }
+.pick.bad .big { color: var(--bad); text-shadow: 0 0 8px rgba(255,71,87,0.5); }
+
+.bar { display: grid; grid-template-columns: 62px 1fr 52px; gap: 8px; align-items: center; font-size: 12px; margin: 4px 0; font-weight: 600;}
+.tr { height: 6px; background: var(--bd); border-radius: 3px; overflow: hidden; }
+.tr i { display: block; height: 100%; background: var(--ac); transition: width 0.5s ease; }
+.bar b { text-align: right; color: var(--ac); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
 td, th { padding: 8px 4px; border-bottom: 1px solid var(--bd); text-align: left; }
 td:nth-child(n+3), th:nth-child(n+3) { text-align: right; }
-table.rt td:nth-child(2), table.rt th:nth-child(2) { text-align: right; }
-.kv { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--bd); }
+.kv { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--bd); font-size: 12px;}
 
 [hidden] { display: none !important; }
 body:not(.adv) .adv-only { display: none !important; }
