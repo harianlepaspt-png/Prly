@@ -10,10 +10,10 @@
   --fg: #ffffff; 
   --mut: #a1a1aa;
   --card: #18181b; 
-  --bd: #ffffff; /* Garis tepi putih tebal */
-  --ac: #ccff00; /* Volt / Neon Green */
-  --ok: #05d9e8; /* Cyan */
-  --bad: #ff2a6d; /* Hot Pink */
+  --bd: #ffffff;
+  --ac: #ccff00; 
+  --ok: #05d9e8; 
+  --bad: #ff2a6d; 
   --shadow: #ffffff;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top,0px);
@@ -94,7 +94,6 @@ input:focus, select:focus, textarea:focus {
 .hd .nm { flex: 1; margin: 0; font-family: 'Oswald', sans-serif; font-weight: 700; border: 2px solid var(--bd); background: #000; font-size: 16px; color: var(--fg); padding: 8px; box-shadow: 3px 3px 0 var(--shadow);}
 .hd .nm:focus { box-shadow: 3px 3px 0 var(--ac); }
 
-/* Desain Logo Tim Brutalism */
 .match-header { 
   display: flex; 
   align-items: center; 
@@ -461,12 +460,11 @@ async function getBadge(name, imgEl, nameEl, vsEl) {
     nameEl.style.display = 'block';
     nameEl.textContent = name;
     
-    // Desain Fallback Brutalism (SVG langsung di-render, tanpa internet)
     const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" fill="#09090b" stroke="#ccff00" stroke-width="8"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Space Mono, monospace" font-size="48" font-weight="bold" fill="#ccff00">${initials}</text></svg>`;
     const fallback = `data:image/svg+xml;base64,${btoa(svg)}`;
 
-    let cache = JSON.parse(localStorage.getItem('badges_v2') || '{}'); // v2: cache baru
+    let cache = JSON.parse(localStorage.getItem('badges_v2') || '{}');
     if (cache[name]) { 
         imgEl.src = cache[name]; 
         checkVS(imgEl.closest('.match-header'));
@@ -477,7 +475,6 @@ async function getBadge(name, imgEl, nameEl, vsEl) {
 
     try {
         const searchName = TEAM_ALIASES[name] || name;
-        // Menggunakan API Key 123 (Free tier terbaru)
         const r = await fetch(`https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=${encodeURIComponent(searchName)}`);
         if (!r.ok) throw new Error('API Limit');
         const data = await r.json();
@@ -498,10 +495,9 @@ function checkVS(container) {
     const a = container.querySelector('.img-a').style.display === 'block';
     container.querySelector('.vs-badge').style.display = (h && a) ? 'block' : 'none';
 }
-// -----------------------------------
 
 const LGS={},LGM={},seen=new Set(),touched=new Set();
-const DIV={E0:'Premier League',E1:'Championship',E2:'League One',E3:'League Two',SC0:'Scottish Premiership',D1:'Bundesliga',D2:'2. Bundesliga',I1:'Serie A',I2:'Serie B',SP1:'La Liga',SP2:'La Liga 2',F1:'Ligue 1',F2:'Ligue 2',N1:'Eredivisie',B1:'Belgian Pro League',P1:'Primeira Liga',T1:'Super Lig',G1:'Super League Greece'};
+const DIV={E0:'Premier League',E1:'Championship',E2:'League One',E3:'League Two',SC0:'Scottish Premiership',D1:'Bundesliga',D2:'2. Bundesliga',I1:'Serie A',I2:'Serie B',SP1:'La Liga',SP2:'La Liga 2',F1:'Ligue 1',F2:'Ligue 2',N1:'Eredivisie',B1:'Belgian Pro League',P1:'Primeira Liga',T1:'Super Lig',G1:'Super League Greece',UCL:'UEFA Champions League'};
 const tauF=(x,y,l,m,r)=>x==0&&y==0?1-l*m*r:x==0&&y==1?1+l*r:x==1&&y==0?1+m*r:x==1&&y==1?1-r:1;
 const teams=c=>{const L=LGS[c.querySelector('.lg').value];return L?L.T:null};
 function fillSel(c){
@@ -563,19 +559,23 @@ function ingest(txt,fb){
 }
 function estimate(nm){
   const M=LGM[nm],en=esc(nm);
-  if(M.length<100){delete LGS[nm];return en+': hanya '+M.length+' laga (min 100).'}
+  if(M.length<100 && nm!=='UCL'){delete LGS[nm];return en+': hanya '+M.length+' laga (min 100).'}
+  if(M.length<10 && nm==='UCL'){delete LGS[nm];return en+': hanya '+M.length+' laga (min 10).'} // Toleransi UCL karena laga lebih sedikit
+  
   const T={},mk=()=>({hs:0,hc:0,hn:0,as:0,ac:0,an:0});let sh=0,sa=0;
   M.forEach(m=>{const H=T[m.h]=T[m.h]||mk(),A=T[m.a]=T[m.a]||mk();
     H.hs+=m.hg;H.hc+=m.ag;H.hn++;A.as+=m.ag;A.ac+=m.hg;A.an++;sh+=m.hg;sa+=m.ag});
   const N=M.length,LH=sh/N,LA=sa/N,K=3;
   const av=(sum,n,L)=>(sum+K*L)/(n+K); 
   const R=[]; 
-  M.forEach(m=>{const H=T[m.h],A=T[m.a];if(H.hn<6||A.an<6)return;
+  M.forEach(m=>{const H=T[m.h],A=T[m.a];if(H.hn<2||A.an<2)return; // Toleransi UCL
     const n1=H.hn-1,n2=A.an-1;
     const lh=av(H.hs-m.hg,n1,LH)*av(A.ac-m.hg,n2,LH)/LH;
     const la=av(A.as-m.ag,n2,LA)*av(H.hc-m.ag,n1,LA)/LA;
     R.push({hg:m.hg,ag:m.ag,lh,la})});
-  if(R.length<100){delete LGS[nm];return en+': riwayat kurang.'}
+  if(R.length<10 && nm==='UCL'){delete LGS[nm];return en+': riwayat kurang.'}
+  if(R.length<100 && nm!=='UCL'){delete LGS[nm];return en+': riwayat kurang.'}
+  
   const ll=r=>{let s=0;for(const m of R){const t=tauF(m.hg,m.ag,m.lh,m.la,r);if(t<=0)return -Infinity;s+=Math.log(t)}return s};
   let best=0,bl=-Infinity;const g=[];
   for(let i=-80;i<=40;i++){const r=i*0.005,v=ll(r);g.push([r,v]);if(v>bl){bl=v;best=r}}
@@ -635,20 +635,69 @@ add();add();
   function inject(){
     const card = document.querySelector('#set');
     if (!card || document.getElementById('auto-leagues')) return;
+    
+    // TOMBOL LIGA EROPA BIASA
     btn = document.createElement('button');
     btn.id = 'auto-leagues';
     btn.type = 'button';
-    btn.textContent = '⚡ Muat liga otomatis';
+    btn.textContent = '⚡ Muat liga Eropa';
     btn.style.cssText = 'width:100%;margin:8px 0;background:var(--ac);color:#000;border:2px solid var(--bd);font-weight:700;font-family:Oswald,sans-serif;text-transform:uppercase;padding:12px;box-shadow:4px 4px 0 var(--shadow);cursor:pointer';
+    
     status = document.createElement('p');
     status.className = 'mut small';
     status.id = 'auto-status';
     status.style.cssText = 'margin-bottom:12px; font-weight:700; color:var(--ac);';
     status.textContent = 'Data dari football-data.co.uk';
+    
     card.insertBefore(status, card.firstChild);
     card.insertBefore(btn, status);
+
+    // TOMBOL UCL BARU
+    const btnUcl = document.createElement('button');
+    btnUcl.id = 'load-ucl';
+    btnUcl.type = 'button';
+    btnUcl.textContent = '🏆 Muat Liga Champions (UCL)';
+    btnUcl.style.cssText = 'width:100%;margin:8px 0;background:var(--bad);color:#fff;border:2px solid var(--bd);font-weight:700;font-family:Oswald,sans-serif;text-transform:uppercase;padding:12px;box-shadow:4px 4px 0 var(--shadow);cursor:pointer';
+    card.insertBefore(btnUcl, btn.nextSibling);
+
     btn.onclick = run;
+    
+    btnUcl.onclick = async () => {
+      if (btnUcl.disabled) return;
+      btnUcl.disabled = true;
+      btnUcl.textContent = 'Mengambil data UCL...';
+      btnUcl.style.transform = 'translate(4px,4px)';
+      btnUcl.style.boxShadow = 'none';
+      
+      try {
+        const r = await fetch('/api/fetch-ucl');
+        if (!r.ok) {
+          const err = await r.json();
+          throw new Error(err.error || 'Gagal ambil data');
+        }
+        const csvText = await r.text();
+        ingest(csvText, 'UCL'); 
+        finish([]);
+        btnUcl.textContent = '✓ UCL dimuat!';
+        btnUcl.style.background = 'var(--ok)';
+        btnUcl.style.color = '#000';
+      } catch (e) {
+        console.error(e);
+        btnUcl.textContent = '✗ Gagal: ' + e.message;
+        alert('Gagal memuat UCL: ' + e.message + '\n\nPastikan API key sudah benar.');
+      } finally {
+        btnUcl.disabled = false;
+        btnUcl.style.transform = 'none';
+        btnUcl.style.boxShadow = '4px 4px 0 var(--shadow)';
+        setTimeout(() => { 
+            btnUcl.textContent = '🏆 Muat Liga Champions (UCL)'; 
+            btnUcl.style.background = 'var(--bad)';
+            btnUcl.style.color = '#fff';
+        }, 3000);
+      }
+    };
   }
+  
   async function run(){
     if (btn.disabled) return;
     btn.disabled = true;
@@ -676,6 +725,7 @@ add();add();
     btn.style.boxShadow = '4px 4px 0 var(--shadow)';
     status.textContent = ok + ' liga siap. Pilih liga di kartu pertandingan.';
   }
+  
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', inject);
   } else {
